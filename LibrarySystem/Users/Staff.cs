@@ -6,12 +6,16 @@ namespace LibrarySystem.Users
 {
     public class Staff : User
     {
-        public string Dept { get; private set; }
+        public string Department { get; private set; }
 
-        public Staff(string name, int id, string dept) : base(name, id)
+        public override int MaxBooksLimit => 10;
+        public override int LoanPeriodDays => 30;
+        public override string RoleName => $"Pracownik ({Department})";
+
+        public Staff(string name, int id, string password, string dept) : base(name, id, password)
         {
             if (string.IsNullOrWhiteSpace(dept)) throw new ArgumentException("Wydział nie może być pusty.");
-            Dept = dept;
+            Department = dept;
         }
     }
 }

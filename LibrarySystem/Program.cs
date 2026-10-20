@@ -6,7 +6,6 @@ using System.Linq;
 
 namespace LibrarySystem
 {
-    // 
     internal class StudentLoginData
     {
         public string Login { get; set; }
