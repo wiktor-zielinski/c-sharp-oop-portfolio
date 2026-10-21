@@ -12,6 +12,7 @@ namespace LibrarySystem.Users
         public override int LoanPeriodDays => 14;
         public override string RoleName => $"Student ({FieldOfStudy})";
 
+        // Tworzy konto studenta przypisane do kierunku studiów
         public Student(string name, int id, string password, string fieldOfStudy) : base(name, id, password)
         {
             if (string.IsNullOrWhiteSpace(fieldOfStudy)) throw new ArgumentException("Kierunek nie może być pusty");

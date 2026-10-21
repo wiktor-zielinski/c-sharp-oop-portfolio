@@ -72,5 +72,27 @@ namespace LibrarySystem.Users
             UserAccount.RegisterReservedBook(book);
             return $"Zarezerwowano książke '{book.Title}'.";
         }
+
+        // Rejestruje rezerwację książki w systemie i na koncie użytkownika
+        public string ReserveBook(Book book)
+        {
+            if (book == null) throw new ArgumentNullException(nameof(book));
+
+            if (!book.BookRequest(ID)) return $"Nie można zarezerwować książki '{book.Title}'.";
+
+            UserAccount.RegisterReservedBook(book);
+            return $"Zarezerowowano książke '{book.Title}'.";
+        }
+
+        // Zgłasza utratę wypożyczonej książki i nalicza karę
+        public string ReportLostBook(Book book)
+        {
+            if (book == null) throw new ArgumentNullException(nameof(book));
+
+            if (!UserAccount.BorrowedBooks.Contains(book)) return "Nie masz wypożyczonej tej książki";
+
+            UserAccount.RegisterLostBook(book);
+            return $"Zgłoszono zagubienie książki '{book.Title}'. Na konto naliczono opłatę karną ({100:C2})";
+        }
     }
 }

@@ -12,7 +12,7 @@ namespace LibrarySystem.Users
         public int ID { get; private set; }
         private string Password { get; set; }
 
-        
+        // Sprawdza dane wymagane do utworzenia konta bibliotekarza
         public Librarian(string name, int id, string password)
         {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Imię nie może być puste.");
@@ -24,7 +24,10 @@ namespace LibrarySystem.Users
             Password = password;
         }
 
-        
+        // Porównuje podane dane logowania z danymi bibliotekarza
+        public bool VerifyLibrarian(int id, string inputPassword) => ID == id && Password == inputPassword;
+
+        // Dodaje książkę do wskazanej bazy
         public void AddBookToDatabase(ILibraryDatabase db, Book book)
         {
             if (db == null) throw new ArgumentNullException(nameof(db));
@@ -32,7 +35,7 @@ namespace LibrarySystem.Users
             db.Add(book);
         }
 
-
+        // Wyszukuje książkę po ISBN i usuwa ją z bazy
         public void RemoveBookFromDatabase(ILibraryDatabase db, string isbn)
         {
             if (db == null) throw new ArgumentNullException(nameof(db));
@@ -40,6 +43,7 @@ namespace LibrarySystem.Users
             db.Delete(book);
         }
 
+        // Przekazuje zapytanie do wyszukiwarki bazy książek
         public IEnumerable<Book> Search(ILibraryDatabase db, string query)
         {
             if (db == null) throw new ArgumentNullException(nameof(db));

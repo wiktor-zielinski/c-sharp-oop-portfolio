@@ -36,7 +36,7 @@ namespace LibrarySystem.Models
         // Zwraca informację o terminie zwrotu albo o braku aktywnego wypożyczenia
         public string ShowDueDate()
         {
-            return DueDate.HasValue ? $"Termin zwrotu książki '{Title}': {DueDate.Value:yyyy-MMM-dd}" : $"Książka '{Title}' nie jest obecnie wypożyczona.";
+            return DueDate.HasValue ? $"Termin zwrotu książki '{Title}': {DueDate.Value:yyyy-MM-dd}" : $"Książka '{Title}' nie jest obecnie wypożyczona.";
         }
 
         // Zamienia bieżący status książki na czytelny komunikat
