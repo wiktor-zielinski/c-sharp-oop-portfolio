@@ -16,7 +16,33 @@ namespace LibrarySystem.Core
         public Librarian? CurrentLibrarian { get; private set; }
 
         public IReadOnlyList<User> Users => _users.AsReadOnly();
+        public IReadOnlyList<Librarian> Librarians => _librarians.AsReadOnly();
 
+        public bool RemoveUser(int id)
+        {
+            var user = _users.FirstOrDefault(u => u.ID == id);
+            if (user == null) return false;
+
+            // Zwracanie wszystkich książek danego użytkownika przed usunięciem
+            foreach(var book in user.UserAccount.BorrowedBooks.ToList())
+            {
+                book.Return();
+            }
+            return _users.Remove(user);
+        }
+
+        public bool RemoveLibrarian(int id)
+        {
+            var librarian = _librarians.FirstOrDefault(l => l.ID == id);
+            if (librarian == null) return false;
+
+            // Uniemożliwienie aktualnie zalogowanemu administratorowi usunięcia własnego konta
+            if (CurrentLibrarian?.ID == id) throw new InvalidOperationException("Nie możesz usunąć swojego aktywnego konta.");
+
+            return _librarians.Remove(librarian);
+
+
+        }
         // Łączy system zarządzania z bazą książek
         public LibraryManagementSystem(ILibraryDatabase database)
         {

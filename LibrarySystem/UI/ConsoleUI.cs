@@ -85,7 +85,7 @@ namespace LibrarySystem.UI
             }
             else if (_system.LoginUser(id, password))
             {
-                ShowStudentMenu();
+                ShowReaderMenu();
             }
             else
             {
@@ -144,11 +144,13 @@ namespace LibrarySystem.UI
                 PrintCenteredText("ZARZĄDZANIE BAZĄ");
                 PrintMiddleBorder();
                 PrintEmptyLine();
-                PrintLeftText("1 - Wyświetl bazę książek (Display)");
-                PrintLeftText("2 - Szukaj książki (Search)");
-                PrintLeftText("3 - Dodaj nową książkę (Add)");
-                PrintLeftText("4 - Usuń książkę z bazy (Delete)");
-                PrintLeftText("5 - Zaktualizuj książkę (Update)");
+                PrintLeftText("1 - Wyświetl bazę książek");
+                PrintLeftText("2 - Szukaj książki");
+                PrintLeftText("3 - Dodaj nową książkę");
+                PrintLeftText("4 - Usuń książkę z bazy");
+                PrintLeftText("5 - Zaktualizuj książkę");
+                PrintLeftText("6 - Sprawdź wypożyczone książki");
+                PrintLeftText("7 - Usuń konto");
                 PrintEmptyLine();
                 PrintMiddleBorder();
                 PrintEmptyLine();
@@ -222,6 +224,80 @@ namespace LibrarySystem.UI
                         }
                         else Console.WriteLine("\nNie znaleziono książki o podanym ISBN.");
                         break;
+                    case "6":
+                        Console.Clear();
+                        PrintTopBorder();
+                        PrintCenteredText("WYPOŻYCZONE KSIĄŻKI I CZYTELNICY");
+                        PrintMiddleBorder();
+                        PrintEmptyLine();
+
+                        bool anyBorrowed = false;
+                        foreach (var u in _system.Users)
+                        {
+                            if (u.UserAccount.NoBorrowedBooks > 0)
+                            {
+                                anyBorrowed = true;
+                                PrintLeftText($"Czytelnik: {u.Name} [ID: {u.ID}] - {u.RoleName}");
+                                foreach (var b in u.UserAccount.BorrowedBooks)
+                                {
+                                    PrintLeftText($" -> \"{b.Title}\" (ISBN: {b.Isbn}) | Zwrot: {b.DueDate:yyyy-MM-dd}");
+                                }
+                                PrintEmptyLine();
+                            }
+                        }
+                        if (!anyBorrowed)
+                        {
+                            PrintLeftText("Brak aktualnie wypożyczonych książek w systemie.");
+                            PrintEmptyLine();
+                        }
+                        PrintBottomBorder();
+                        break;
+                    case "7":
+                        Console.Write("Kogo chcesz usunąć? (1 - Czytelnik, 2 - Bibliotekarz): ");
+                        string delType = Console.ReadLine()?.Trim() ?? "";
+
+                        if (delType == "1")
+                        {
+                            Console.WriteLine("\nLista dostępnych czytelników:");
+                            if (_system.Users.Count == 0) Console.WriteLine("Brak zarejestrowanych czytelników.");
+                            foreach (var u in _system.Users)
+                            {
+                                Console.WriteLine($"- ID: {u.ID,-4} | {u.Name} [{u.RoleName}]");
+                            }
+                        }
+                        else if (delType == "2")
+                        {
+                            Console.WriteLine("\nLista dostępnych bibliotekarzy:");
+                            if (_system.Librarians.Count == 0) Console.WriteLine("Brak zarejestrowanych bibliotekarzy.");
+                            foreach (var l in _system.Librarians)
+                            {
+                                string currentTag = (_system.CurrentLibrarian?.ID == l.ID) ? " (Twoje aktywne konto)" : "";
+                                Console.WriteLine($"- ID: {l.ID,-4} | {l.Name}{currentTag}");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("\nWybrano nieprawidłową opcję.");
+                            break;
+                        }
+
+                        Console.Write("\nPodaj ID konta do usunięcia: ");
+                        if (int.TryParse(Console.ReadLine(), out int delId))
+                        {
+                            try
+                            {
+                                bool success = delType == "1" ? _system.RemoveUser(delId) : _system.RemoveLibrarian(delId);
+
+                                if (success) Console.WriteLine("\nPomyślnie usunięto konto i zwolniono powiązane książki.");
+                                else Console.WriteLine("\nNie znaleziono konta o podanym ID.");
+                            }
+                            catch (Exception ex) { Console.WriteLine($"\nBłąd: {ex.Message}"); }
+                        }
+                        else
+                        {
+                            Console.WriteLine("\nBłąd: ID musi być liczbą!");
+                        }
+                        break;
                 }
                 Console.WriteLine("\nNaciśnij dowolny klawisz, aby wrócić.");
                 Console.ReadKey(intercept: true);
@@ -229,16 +305,20 @@ namespace LibrarySystem.UI
         }
 
         // Obsługuje menu operacji dostępnych dla czytelnika
-        private void ShowStudentMenu()
+        private void ShowReaderMenu()
         {
             var user = _system.CurrentUser!;
+            bool isStaff = user is Staff;
+
             while (true)
             {
                 Console.Clear();
                 PrintTopBorder();
-                PrintCenteredText($"PANEL CZYTELNIKA ({user.Name})");
+                string panelTitle = isStaff ? $"PANEL CZYTELNIKA ({user.Name})" : $"PANEL Studenta ({user.Name})";
+                PrintCenteredText(panelTitle);
+
                 PrintMiddleBorder();
-                PrintCenteredText("OPERACJE BIBLIOTECZNE");
+                PrintCenteredText($"{user.RoleName} | Limit: {user.UserAccount.NoBorrowedBooks}/{user.MaxBooksLimit} | Okres: {user.LoanPeriodDays} dni");
                 PrintMiddleBorder();
                 PrintEmptyLine();
                 PrintLeftText("1 - Wyświetl dostępne książki");
@@ -246,14 +326,15 @@ namespace LibrarySystem.UI
                 PrintLeftText("3 - Zwróć książkę (ReturnBook)");
                 PrintLeftText("4 - Zarezerwuj książkę (ReserveBook)");
                 PrintLeftText("5 - Zostaw opinię o książce (Feedback)");
+                if(isStaff) PrintLeftText("6 - Zamów nową książkę do sylabusów");
                 PrintEmptyLine();
                 PrintMiddleBorder();
                 PrintCenteredText("ZARZĄDZANIE KONTEM");
                 PrintMiddleBorder();
                 PrintEmptyLine();
-                PrintLeftText("6 - Informacje o koncie i karach (CheckAccount)");
-                PrintLeftText("7 - Odnów wypożyczenie (RenewInfo)");
-                PrintLeftText("8 - Zgłoś zagubienie książki");
+                PrintLeftText("01 - Informacje o koncie i karach (CheckAccount)");
+                PrintLeftText("02 - Odnów wypożyczenie (RenewInfo)");
+                PrintLeftText("03 - Zgłoś zagubienie książki");
                 PrintEmptyLine();
                 PrintMiddleBorder();
                 PrintEmptyLine();
@@ -318,13 +399,24 @@ namespace LibrarySystem.UI
                         }
                         else Console.WriteLine("Nie znaleziono książki.");
                         break;
-                    case "6":
+                    case "6" when isStaff:
+                        Console.WriteLine("--- ZAMÓWIENIE KSIĄŻKI DYDAKTYCZNEJ ---");
+                        Console.Write("Tytuł: "); string t = Console.ReadLine() ?? "";
+                        Console.Write("Autor: "); string a = Console.ReadLine() ?? "";
+                        Console.Write("ISBN: "); string i = Console.ReadLine() ?? "";
+
+                        var requestedBook = new Book(t, a, i, DateTime.Now);
+                        _system.Database.Add(requestedBook);
+                        user.ReserveBook(requestedBook);
+                        Console.WriteLine($"\nDodano książkę '{t}' do bazy i automatycznie zarezerwowano dla Ciebie!");
+                        break;
+                    case "01":
                         Console.WriteLine(user.GetBookInfo());
                         Console.WriteLine($"Naliczone kary: {user.CheckAccount():C}");
                         Console.WriteLine($"Zarezerwowane książki: {user.UserAccount.NoReservedBooks}");
                         Console.WriteLine($"Zwrócone historycznie: {user.UserAccount.NoReturnedBooks}");
                         break;
-                    case "7":
+                    case "02":
                         Console.WriteLine(user.GetBookInfo());
                         if (user.UserAccount.NoBorrowedBooks > 0)
                         {
@@ -338,7 +430,7 @@ namespace LibrarySystem.UI
                                 Console.WriteLine("Nie można przedłużyć książki (nie istnieje lub jest zarezerwowana).");
                         }
                         break;
-                    case "8":
+                    case "03":
                         ViewAllBooks();
                         Console.Write("Podaj ISBN zagubionej książki: ");
                         var lostBook = _system.Database.GetByIsbn(Console.ReadLine()?.Trim() ?? "");
