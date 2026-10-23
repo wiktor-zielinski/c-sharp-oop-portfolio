@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="LibrarySystem/LibrarySystem.csproj" Id="2e1d74de-2fc4-4670-8279-629558215941" />
+  <Project Path="RestaurantSystem/RestaurantSystem.csproj" Id="8d8d9e87-5527-42de-89fd-b941f660ced7" />
 </Solution>
