@@ -15,6 +15,7 @@ namespace RestaurantSystem.Models
         private readonly List<string> _systemLogs = new List<string>();
         private readonly object _lockObj = new object();
 
+        // Zwraca wielowątkowo kopię listy wszystkich zamówień
         public IReadOnlyList<Order> AllOrders
         {
             get

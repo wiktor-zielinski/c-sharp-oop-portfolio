@@ -9,7 +9,6 @@ namespace RestaurantSystem.Staff
     public class Waiter : User
     {
         private readonly IRestaurantDatabase _database;
-        public int TakenOrdersCount { get; private set; }
 
         public override string RoleName => "Kelner";
 
@@ -22,11 +21,20 @@ namespace RestaurantSystem.Staff
         public Order PlaceManualOrder(Meal meal)
         {
             var order = new Order(meal, ID);
+            UserAccount.AssignOrder(order);
+            UserAccount.CompleteOrder(order);
             _database.EnqueueOrder(order);
-            TakenOrdersCount++;
             return order;
         }
 
+        public string CancelOrder(Order order)
+        {
+            if (order.Status == OrderStatus.Ready || order.Status == OrderStatus.Cancelled) return "Nie można anulować zamówienia, które zostału już wydane lub anulowane";
+
+            UserAccount.RegisterCancelledOrder(order, 5.00m);
+            _database.AddLog($"[KELNER #{ID}] Anulowano zamówienie #{order.OrderId} ({order.Meal.Name})");
+            return $"Zamówienie #{order.OrderId} zostało anulowane (naliczono opłatę 5,00 zł).";
+        }
         // Pętla wykonywana przez wątek kelnera podczas symulacji
         public void CollectOrdersLoop(CancellationToken token)
         {
@@ -40,8 +48,9 @@ namespace RestaurantSystem.Staff
                     Meal randomMeal = availableMeals[rnd.Next(availableMeals.Count)];
                     Order order = new Order(randomMeal, ID);
 
+                    UserAccount.AssignOrder(order);
+                    UserAccount.CompleteOrder(order);
                     _database.EnqueueOrder(order);
-                    TakenOrdersCount++;
                 }
 
                 // Usypia wątek na losowy czas z obsługą natychmiastowego zatrzymania

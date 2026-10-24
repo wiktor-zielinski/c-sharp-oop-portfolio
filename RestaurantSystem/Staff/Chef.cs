@@ -9,8 +9,6 @@ namespace RestaurantSystem.Staff
     public class Chef : User
     {
         private readonly IRestaurantDatabase _database;
-        public int CookedMealsCount { get; private set; }
-
         public override string RoleName => "Kucharz";
 
         public Chef(int id, string name, string password, IRestaurantDatabase database)
@@ -37,7 +35,7 @@ namespace RestaurantSystem.Staff
 
                     order.Status = OrderStatus.Ready;
                     order.CompletedAt = DateTime.Now;
-                    CookedMealsCount++;
+                    UserAccount.CompleteOrder(order);
                     _database.AddLog($"[KUCHARZ #{ID} - {Name}] Ukończył gotowanie (#{order.OrderId}): {order.Meal.Name}");
                     return order;
                 }
@@ -47,6 +45,15 @@ namespace RestaurantSystem.Staff
                 // Ignoruje błąd, jeśli kolejka została opróżniona przez inny wątek w tym samym ułamku sekundy
             }
             return null;
+        }
+
+        public string ReportRuinedMeal(Order order)
+        {
+            if (order.Status == OrderStatus.Cancelled) return "To zamówienie jest już anulowane.";
+
+            UserAccount.RegisterCancelledOrder(order, 15.00m);
+            _database.AddLog($"[KUCHARZ #{ID}] Zgłoszono zepsucie dania w zamówieniu #{order.OrderId} ({order.Meal.Name})");
+            return $"Zgłoszono stratę dla zamówienia #{order.OrderId}. Naliczono karę 15,00 zł.";
         }
 
         public void CookMealsLoop(CancellationToken token)
@@ -71,7 +78,7 @@ namespace RestaurantSystem.Staff
 
                             order.Status = OrderStatus.Ready;
                             order.CompletedAt = DateTime.Now;
-                            CookedMealsCount++;
+                            UserAccount.CompleteOrder(order);
                             _database.AddLog($"[KUCHARZ #{ID}] Gotowe zamówienie #{order.OrderId} ({order.Meal.Name})");
                         }
                         token.WaitHandle.WaitOne(rnd.Next(1000, 2000));

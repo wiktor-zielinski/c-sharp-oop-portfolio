@@ -100,6 +100,17 @@ namespace RestaurantSystem.Core
             return StaffMembers.Remove(staff);
         }
 
+        // Usuwa konto managera z systemu
+        public bool RemoveManager(int id)
+        {
+            if (CurrentManager?.ID == id)
+                throw new InvalidOperationException("Nie możesz usunąć własnego aktywnego konta!");
+
+            var manager = Managers.FirstOrDefault(m => m.ID == id);
+            if (manager == null) return false;
+            return Managers.Remove(manager);
+        }
+
         // Uruchamia wątki Kelnerów i Kucharzy w tle
         public void StartSimulation()
         {
