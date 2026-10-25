@@ -200,12 +200,252 @@ namespace RestaurantSystem.UI
 
         private void ShowManagerMenu()
         {
+            var manager = _system.CurrentManager!;
+            while (true)
+            {
+                Console.Clear();
+                PrintTopBorder();
+                PrintCenteredText($"PANEL MANAGERA ({manager.Name})");
+                PrintMiddleBorder();
+                PrintCenteredText("ZARZĄDZANIE RESTAURACJĄ I MENU");
+                PrintMiddleBorder();
+                PrintEmptyLine();
+                PrintLeftText("1 - Wyświetl Menu");
+                PrintLeftText("2 - Szukaj posiłku w menu");
+                PrintLeftText("3 - Dodaj nowy posiłek do menu");
+                PrintLeftText("4 - Usuń posiłek z menu");
+                PrintLeftText("5 - Edytuj posiłek w menu");
+                PrintLeftText("6 - Historia zamówień i statystyki");
+                PrintLeftText("7 - Zarządzaj kontami (Usuń konto)");
+                PrintLeftText($"8 - {(_system.IsSimulationRunning ? "Zatrzymaj" : "Uruchom")} symulację wielowątkową");
+                PrintLeftText("9 - Otwórz monitor kuchni na żywo");
+                PrintEmptyLine();
+                PrintMiddleBorder();
+                PrintEmptyLine();
+                PrintLeftText("0 - Wyloguj się (Logout)");
+                PrintEmptyLine();
+                PrintBottomBorder();
 
+                Console.Write("\nWybierz opcję: ");
+                string choice = Console.ReadLine()?.Trim() ?? "";
+
+                if (choice == "0")
+                {
+                    Console.WriteLine("\nWylogowywanie systemu...");
+                    Thread.Sleep(800);
+                    _system.Logout();
+                    break;
+                }
+
+                Console.WriteLine();
+                switch (choice)
+                {
+                    case "1":
+                        ViewAllMeals();
+                        break;
+                    case "2":
+                        Console.Write("Wpisz szukaną nazwę posiłku lub ID: ");
+                        var results = manager.SearchMeals(_system.Database, Console.ReadLine() ?? "").ToList();
+                        Console.WriteLine($"\nZnaleziono {results.Count} pozycji.");
+                        results.ForEach(m => Console.WriteLine($" - {m}"));
+                        break;
+                    case "3":
+                        Console.Write("ID nowego posiłku (liczba): ");
+                        if (!int.TryParse(Console.ReadLine(), out int newId))
+                        {
+                            Console.WriteLine("Błąd: ID musi być liczbą!");
+                            break;
+                        }
+                        Console.Write("Nazwa posiłku: ");
+                        string mealName = Console.ReadLine() ?? "";
+                        Console.Write("Czas gotowania w ms (np. 4000): ");
+                        int.TryParse(Console.ReadLine(), out int cookingTime);
+                        if (cookingTime <= 0) cookingTime = 3000;
+                        Console.Write("Cena (PLN): ");
+                        decimal.TryParse(Console.ReadLine(), out decimal price);
+                        if (price <= 0) price = 25.00m;
+
+                        try
+                        {
+                            manager.AddMealToDatabase(_system.Database, new Meal(newId, mealName, cookingTime, price));
+                            Console.WriteLine("\nDodano posiłek do karty dań!");
+                        }
+                        catch (Exception ex) { Console.WriteLine($"\nBłąd: {ex.Message}"); }
+                        break;
+                    case "4":
+                        ViewAllMeals();
+                        Console.Write("\nPodaj ID posiłku do usunięcia: ");
+                        if (int.TryParse(Console.ReadLine(), out int delMealId))
+                        {
+                            try
+                            {
+                                manager.RemoveMealFromDatabase(_system.Database, delMealId);
+                                Console.WriteLine("\nPomyślnie usunięto posiłek z menu.");
+                            }
+                            catch (Exception ex) { Console.WriteLine($"\nBłąd: {ex.Message}"); }
+                        }
+                        break;
+                    case "5":
+                        ViewAllMeals();
+                        Console.Write("\nPodaj ID posiłku do aktualizacji: ");
+                        if (int.TryParse(Console.ReadLine(), out int editId))
+                        {
+                            var existing = _system.Database.GetMealById(editId);
+                            if (existing != null)
+                            {
+                                Console.WriteLine($"Edytujesz: {existing.Name} ({existing.CookingTime} ms, {existing.Price:C})");
+                                Console.Write("Nowa nazwa (zostaw puste by nie zmieniać): ");
+                                string newName = Console.ReadLine() ?? "";
+                                if (string.IsNullOrWhiteSpace(newName)) newName = existing.Name;
+
+                                Console.Write("Nowy czas gotowania w ms (zostaw puste by nie zmieniać): ");
+                                string newTimeStr = Console.ReadLine() ?? "";
+                                int newTime = int.TryParse(newTimeStr, out int parsedTime) ? parsedTime : existing.CookingTime;
+
+                                Console.Write("Nowa cena (zostaw puste by nie zmieniać): ");
+                                string newPriceStr = Console.ReadLine() ?? "";
+                                decimal newPrice = decimal.TryParse(newPriceStr, out decimal parsedPrice) ? parsedPrice : existing.Price;
+
+                                _system.Database.UpdateMeal(new Meal(existing.Id, newName, newTime, newPrice));
+                                Console.WriteLine("\nZaktualizowano posiłek!");
+                            }
+                            else Console.WriteLine("\nNie znaleziono posiłku o podanym ID.");
+                        }
+                        break;
+                    case "6":
+                        ViewOrderStatistics();
+                        break;
+                    case "7":
+                        Console.Write("Kogo chcesz usunąć? (1 - Pracownik, 2 - Manager): ");
+                        string delType = Console.ReadLine()?.Trim() ?? "";
+
+                        if (delType == "1")
+                        {
+                            Console.WriteLine("\nLista dostępnych pracowników:");
+                            if (_system.StaffMembers.Count == 0) Console.WriteLine("Brak zarejestrowanych pracowników.");
+                            foreach (var s in _system.StaffMembers)
+                            {
+                                Console.WriteLine($"- ID: {s.ID,-4} | {s.Name} [{s.RoleName}]");
+                            }
+                        }
+                        else if (delType == "2")
+                        {
+                            Console.WriteLine("\nLista dostępnych managerów:");
+                            foreach (var m in _system.Managers)
+                            {
+                                string currentTag = (_system.CurrentManager?.ID == m.ID) ? " (Twoje aktywne konto)" : "";
+                                Console.WriteLine($"- ID: {m.ID,-4} | {m.Name}{currentTag}");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("\nWybrano nieprawidłową opcję.");
+                            break;
+                        }
+
+                        Console.Write("\nPodaj ID konta do usunięcia: ");
+                        if (int.TryParse(Console.ReadLine(), out int delId))
+                        {
+                            try
+                            {
+                                bool success = delType == "1" ? _system.RemoveStaff(delId) : _system.RemoveManager(delId);
+                                if (success) Console.WriteLine("\nPomyślnie usunięto konto.");
+                                else Console.WriteLine("\nNie znaleziono konta o podanym ID.");
+                            }
+                            catch (Exception ex) 
+                            {
+                                Console.WriteLine($"\nBłąd: {ex.Message}");
+                            }
+                        }
+                        else Console.WriteLine("\nBłąd: ID musi być liczbą!");
+                        break;
+                    case "8":
+                        if (_system.IsSimulationRunning)
+                        {
+                            _system.StopSimulation();
+                            Console.WriteLine("Zatrzymano symulację wielowątkową.");
+                        }
+                        else
+                        {
+                            _system.StartSimulation();
+                            Console.WriteLine("Uruchomiono wątki kelnerów i kucharzy w tle!");
+                        }
+                        break;
+                    case "9":
+                        ShowLiveSimulationMonitor();
+                        continue;
+                }
+                Console.WriteLine("\nNaciśnij dowolny klawisz, aby wrócić.");
+                Console.ReadKey(intercept: true);
+            }
         }
 
         private void ShowStaffMenu()
         {
 
+        }
+
+        private void ViewAllMeals()
+        {
+            var meals = _system.Database.GetAllMeals();
+            if(meals.Count == 0)
+            {
+                Console.WriteLine("Menu jest puste.");
+                return;
+            }
+
+            Console.Clear();
+            PrintTopBorder();
+            PrintCenteredText("MENU RESTAURACJI");
+            PrintMiddleBorder();
+            PrintEmptyLine();
+            foreach(var meal in meals)
+            {
+                PrintLeftText($"- [{meal.Id}] {meal.Name}");
+                PrintLeftText($"\tCzas przygotowania: {meal.CookingTime} ms ({meal.CookingTime / 1000.0:F1} s) | Cena: {meal.Price:C}");
+                foreach (var fb in meal.Feedbacks)
+                {
+                    PrintLeftText($"   > {fb}");
+                }
+                PrintEmptyLine();
+            }
+            PrintBottomBorder();
+        }
+
+        private void ViewOrderStatistics()
+        {
+            Console.Clear();
+            PrintTopBorder();
+            PrintCenteredText("HISTORIA ZAMÓWIEŃ I STATYSTYKI");
+            PrintMiddleBorder();
+            PrintEmptyLine();
+
+            var orders = _system.Database.AllOrders;
+            PrintLeftText($"Łącznie złożonych zamówień: {orders.Count}");
+            PrintLeftText($"Oczekujących w kolejce: {_system.Database.OrderQueue.Count}");
+            PrintLeftText($"W trakcie gotowania: {orders.Count(o => o.Status == OrderStatus.Cooking)}");
+            PrintLeftText($"Ukończonych: {orders.Count(o => o.Status == OrderStatus.Ready)}");
+            PrintLeftText($"Anulowanych / Strat: {orders.Count(o => o.Status == OrderStatus.Cancelled)}");
+            PrintEmptyLine();
+            PrintMiddleBorder();
+            PrintCenteredText("OSTATNIE 10 ZAMÓWIEŃ");
+            PrintMiddleBorder();
+            PrintEmptyLine();
+
+            if (orders.Count == 0)
+            {
+                PrintLeftText("Brak zamówień w historii.");
+            }
+            else
+            {
+                foreach (var o in orders.TakeLast(10))
+                {
+                    string chefInfo = o.ChefId.HasValue ? $"Kucharz #{o.ChefId}" : "Brak";
+                    PrintLeftText($"#{o.OrderId,-3} | {o.Meal.Name,-22} | Kelner #{o.WaiterId} | {chefInfo,-12} | {o.Status}");
+                }
+            }
+            PrintEmptyLine();
+            PrintBottomBorder();
         }
 
         // Wylicza margines potrzebny do wyśrodkowania menu
