@@ -27,6 +27,7 @@ namespace RestaurantSystem.Staff
             return order;
         }
 
+        // Zgłasza anulowanie zamówienia przez klienta
         public string CancelOrder(Order order)
         {
             if (order.Status == OrderStatus.Ready || order.Status == OrderStatus.Cancelled) return "Nie można anulować zamówienia, które zostału już wydane lub anulowane";

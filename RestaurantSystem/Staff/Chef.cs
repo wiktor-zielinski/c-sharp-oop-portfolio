@@ -47,15 +47,19 @@ namespace RestaurantSystem.Staff
             return null;
         }
 
+        // Zgłasza przypalenie lub zepsucie posiłku w kuchni
         public string ReportRuinedMeal(Order order)
         {
             if (order.Status == OrderStatus.Cancelled) return "To zamówienie jest już anulowane.";
+
+            if (order.Status == OrderStatus.Ready) return "Nie można zgłosić zepsucia zamówienia, które zostało już ukończone i wydane.";
 
             UserAccount.RegisterCancelledOrder(order, 15.00m);
             _database.AddLog($"[KUCHARZ #{ID}] Zgłoszono zepsucie dania w zamówieniu #{order.OrderId} ({order.Meal.Name})");
             return $"Zgłoszono stratę dla zamówienia #{order.OrderId}. Naliczono karę 15,00 zł.";
         }
 
+        // Pętla wykonywana przez wątek kucharza podczas symulacji
         public void CookMealsLoop(CancellationToken token)
         {
             Random rnd = new Random(Guid.NewGuid().GetHashCode());

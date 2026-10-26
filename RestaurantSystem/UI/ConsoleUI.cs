@@ -32,7 +32,7 @@ namespace RestaurantSystem.UI
                 PrintEmptyLine();
                 PrintLeftText("1 - Zaloguj się do systemu");
                 PrintLeftText("2 - Zarejestruj nowego pracownika (Kelner / Kucharz)");
-                PrintLeftText("3 - Monitor Kuchni na żywo (Symulacja Kelnerzy <-> Kucharze)");
+                PrintLeftText("3 - Monitor Kuchni na żywo");
                 PrintEmptyLine();
                 PrintMiddleBorder();
                 PrintEmptyLine();
@@ -382,7 +382,189 @@ namespace RestaurantSystem.UI
 
         private void ShowStaffMenu()
         {
+            var user = _system.CurrentUser!;
+            bool isWaiter = user is Waiter;
 
+            while (true)
+            {
+                Console.Clear();
+                PrintTopBorder();
+                string title = isWaiter ? $"PANEL KELNERA ({user.Name})" : $"PANEL KUCHARZA ({user.Name})";
+                PrintCenteredText(title);
+                PrintMiddleBorder();
+                PrintCenteredText($"{user.RoleName} | ID: #{user.ID} | Zrealizowane: {user.UserAccount.NoCompletedOrders} | Bilans: {user.UserAccount.CalculateBalance():C}");
+                PrintMiddleBorder();
+                PrintEmptyLine();
+                PrintLeftText("1 - Wyświetl Menu");
+                if (isWaiter)
+                {
+                    PrintLeftText("2 - Przyjmij ręcznie nowe zamówienie");
+                    PrintLeftText("3 - Sprawdź status moich zamówień");
+                }
+                else
+                {
+                    PrintLeftText($"2 - Pobierz i ugotuj posiłek z kolejki (W kolejce: {_system.Database.OrderQueue.Count})");
+                    PrintLeftText("3 - Wyświetl moje ugotowane posiłki");
+                }
+                PrintLeftText("4 - Dodaj opinię o posiłku");
+                PrintLeftText("5 - Podgląd monitora kuchni na żywo");
+                PrintEmptyLine();
+                PrintMiddleBorder();
+                PrintCenteredText("ZARZĄDZANIE KONTEM");
+                PrintMiddleBorder();
+                PrintEmptyLine();
+                PrintLeftText("01 - Informacje o koncie, napiwkach i karach");
+                PrintLeftText(isWaiter ? "02 - Anuluj zamówienie klienta" : "02 - Zgłoś zepsucie/przypalenie posiłku");
+                PrintEmptyLine();
+                PrintMiddleBorder();
+                PrintEmptyLine();
+                PrintLeftText("0 - Wyloguj się");
+                PrintEmptyLine();
+                PrintBottomBorder();
+
+                Console.Write("\nWybierz opcję: ");
+                string choice = Console.ReadLine()?.Trim() ?? "";
+
+                if (choice == "0")
+                {
+                    _system.Logout();
+                    break;
+                }
+
+                Console.WriteLine();
+                switch (choice)
+                {
+                    case "1":
+                        ViewAllMeals();
+                        break;
+                    case "2" when user is Waiter waiter:
+                        ViewAllMeals();
+                        Console.Write("\nPodaj ID posiłku, który zamawia klient: ");
+                        if (int.TryParse(Console.ReadLine(), out int mealId))
+                        {
+                            var meal = _system.Database.GetMealById(mealId);
+                            if (meal != null)
+                            {
+                                var newOrder = waiter.PlaceManualOrder(meal);
+                                Console.WriteLine($"\nPrzyjęto zamówienie #{newOrder.OrderId} ({meal.Name}) i przekazano do kuchni!");
+                            }
+                            else Console.WriteLine("Posiłek o podanym ID nie istnieje w menu.");
+                        }
+                        break;
+                    case "2" when user is Chef chef:
+                        if (_system.Database.OrderQueue.Count == 0)
+                        {
+                            Console.WriteLine("Brak oczekujących zamówień w kolejce!");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Pobieranie zamówienia z kolejki i rozpoczynanie gotowania...");
+                            var cookedOrder = chef.CookSingleOrder();
+                            if (cookedOrder != null)
+                                Console.WriteLine($"Ukończono gotowanie zamówienia #{cookedOrder.OrderId}: {cookedOrder.Meal.Name}!");
+                            else
+                                Console.WriteLine("Nie udało się pobrać zamówienia.");
+                        }
+                        break;
+                    case "3" when user is Waiter:
+                        var waiterOrders = _system.Database.AllOrders.Where(o => o.WaiterId == user.ID).ToList();
+                        Console.WriteLine($"Twoje zamówienia ({waiterOrders.Count}):");
+                        foreach (var o in waiterOrders.TakeLast(15))
+                        {
+                            Console.WriteLine($"- #{o.OrderId} | {o.Meal.Name,-24} | Status: {o.Status}");
+                        }
+                        break;
+                    case "3" when user is Chef:
+                        var chefOrders = _system.Database.AllOrders.Where(o => o.ChefId == user.ID).ToList();
+                        Console.WriteLine($"Obsłużone przez Ciebie zamówienia ({chefOrders.Count}):");
+                        foreach (var o in chefOrders.TakeLast(15))
+                        {
+                            Console.WriteLine($"- #{o.OrderId} | {o.Meal.Name,-24} | Od kelnera: #{o.WaiterId} | Status: {o.Status}");
+                        }
+                        break;
+                    case "4":
+                        ViewAllMeals();
+                        Console.Write("\nPodaj ID posiłku, który chcesz ocenić: ");
+                        if (int.TryParse(Console.ReadLine(), out int rateMealId))
+                        {
+                            var mealToRate = _system.Database.GetMealById(rateMealId);
+                            if (mealToRate != null)
+                            {
+                                Console.Write("Twoja opinia / uwaga: ");
+                                mealToRate.AddFeedback(user.Name, Console.ReadLine() ?? "");
+                                Console.WriteLine("Dodano opinię do posiłku!");
+                            }
+                            else Console.WriteLine("Nie znaleziono posiłku.");
+                        }
+                        break;
+                    case "5":
+                        ShowLiveSimulationMonitor();
+                        continue;
+                    case "01":
+                        Console.WriteLine(user.GetAccountSummary());
+                        Console.WriteLine($"Zebrane napiwki / premie (10%): {user.UserAccount.EarnedTips:C}");
+                        Console.WriteLine($"Naliczone kary: {user.UserAccount.PenaltyAmount:C}");
+                        Console.WriteLine($"Bilans netto: {user.UserAccount.CalculateBalance():C}");
+                        break;
+                    case "02" when user is Waiter waiterForCancel:
+                        // Zatrzymanie symulacji na czas wyboru
+                        bool wasRunningW = _system.IsSimulationRunning;
+                        if (wasRunningW) _system.StopSimulation();
+
+                        Console.WriteLine("\nTwoje aktywne zamówienia (możliwe do anulowania):");
+                        var activeWaiterOrders = _system.Database.AllOrders.Where(o => o.WaiterId == user.ID && (o.Status == OrderStatus.Pending || o.Status == OrderStatus.Cooking)).ToList();
+
+                        if (activeWaiterOrders.Count == 0) Console.WriteLine("Brak aktywnych zamówień, które można anulować.");
+                        else
+                        {
+                            // Wyświetlenie listy zamówień
+                            foreach (var o in activeWaiterOrders)
+                            {
+                                Console.WriteLine($"- #{o.OrderId,-3} | {o.Meal.Name,-22} | Status: {o.Status}");
+                            }
+
+                            Console.Write("\nPodaj ID zamówienia do anulowania (lub 0 aby wyjść): ");
+                            if (int.TryParse(Console.ReadLine(), out int cancelId) && cancelId != 0)
+                            {
+                                var orderToCancel = activeWaiterOrders.FirstOrDefault(o => o.OrderId == cancelId);
+                                if (orderToCancel != null) Console.WriteLine(waiterForCancel.CancelOrder(orderToCancel));
+                                else Console.WriteLine("Nie znaleziono zamówienia o podanym ID na powyższej liście.");
+                            }
+                        }
+
+                        // Wznowienie symulacji po wykonaniu akcji
+                        if (wasRunningW) _system.StartSimulation();
+                        break;
+                    case "02" when user is Chef chefForRuin:
+                        bool wasRunningC = _system.IsSimulationRunning;
+                        if (wasRunningC) _system.StopSimulation();
+
+                        Console.WriteLine("\nTwoje zamówienia aktualnie w trakcie gotowania:");
+                        var activeChefOrders = _system.Database.AllOrders.Where(o => o.ChefId == user.ID && o.Status == OrderStatus.Cooking).ToList();
+
+                        if (activeChefOrders.Count == 0) Console.WriteLine("Brak zamówień w trakcie gotowania.");
+                        else
+                        {
+                            foreach (var o in activeChefOrders)
+                            {
+                                Console.WriteLine($"- #{o.OrderId,-3} | {o.Meal.Name,-22} | Status: {o.Status}");
+                            }
+
+                            Console.Write("\nPodaj ID zamówienia, które uległo zepsuciu (lub 0 aby wyjść): ");
+                            if (int.TryParse(Console.ReadLine(), out int ruinId) && ruinId != 0)
+                            {
+                                var orderToRuin = activeChefOrders.FirstOrDefault(o => o.OrderId == ruinId);
+                                if (orderToRuin != null) Console.WriteLine(chefForRuin.ReportRuinedMeal(orderToRuin));
+                                else Console.WriteLine("Nie znaleziono zamówienia o podanym ID na powyższej liście.");
+                            }
+                        }
+
+                        if (wasRunningC) _system.StartSimulation();
+                        break;
+                }
+                Console.WriteLine("\nNaciśnij dowolny klawisz, aby wrócić.");
+                Console.ReadKey(intercept: true);
+            }
         }
 
         private void ViewAllMeals()
