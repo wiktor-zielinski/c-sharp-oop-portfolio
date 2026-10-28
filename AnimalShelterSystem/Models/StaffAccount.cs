@@ -25,6 +25,12 @@ namespace AnimalShelterSystem.Models
             }
         }
 
+        // Zwalnia zwierzę spod bezpośredniej opieki
+        public void UnassignAnimal(Animal animal)
+        {
+            _assignedAnimals.Remove(animal);
+        }
+
         // Rejestruje sesję rehabilitacyjną lub opiekuńczą
         public void RecordCareSession(int hoursSpent)
         {

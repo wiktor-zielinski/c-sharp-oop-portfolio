@@ -5,7 +5,7 @@ using System.Text;
 
 namespace AnimalShelterSystem.Core
 {
-    internal interface IShelterDatabase
+    public interface IShelterDatabase
     {
         IReadOnlyList<Animal> ListOfAnimals { get; }
         event Action<string>? OnShelterMilestone;

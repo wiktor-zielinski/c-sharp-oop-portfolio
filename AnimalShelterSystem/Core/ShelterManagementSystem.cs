@@ -6,5 +6,6 @@ namespace AnimalShelterSystem.Core
 {
     internal class ShelterManagementSystem
     {
+
     }
 }
