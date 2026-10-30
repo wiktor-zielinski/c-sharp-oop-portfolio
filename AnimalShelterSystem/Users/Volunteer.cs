@@ -20,7 +20,7 @@ namespace AnimalShelterSystem.Users
         public List<Animal> MatchAnimalsForAdopter(IShelterDatabase db, bool hasGarden, bool isExperienced, AnimalSpecies? preferredSpecies)
         {
             return db.ListOfAnimals.Where(a =>
-                a.Status == AdoptionStatus.ReadyForAdoption &&
+                a.Status == AdoptionStatus.GotowyDoAdopcji &&
                 (preferredSpecies == null || a.Species == preferredSpecies) &&
                 (!a.RequiresGarden || hasGarden) &&
                 (isExperienced || a.SocializationScore >= 85)
@@ -30,9 +30,9 @@ namespace AnimalShelterSystem.Users
         // Finalizuje proces adopcji zwierzęcia do nowego domu
         public string ProcessAdoption(Animal animal, string adopterName, IShelterDatabase db)
         {
-            if (animal.Status != AdoptionStatus.ReadyForAdoption) return $"Zwierzę {animal.Name} nie jest jeszcze gotowe do adopcji (Aktualny status: {animal.Status}).";
+            if (animal.Status != AdoptionStatus.GotowyDoAdopcji) return $"Zwierzę {animal.Name} nie jest jeszcze gotowe do adopcji (Aktualny status: {animal.Status}).";
 
-            animal.Status = AdoptionStatus.Adopted;
+            animal.Status = AdoptionStatus.Adoptowany;
             animal.CaretakerId = null;
             animal.AddNote(Name, $"Adoptowany przez: {adopterName}");
             UserAccount.RecordAdoption(animal);

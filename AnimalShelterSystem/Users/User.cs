@@ -28,7 +28,7 @@ namespace AnimalShelterSystem.Users
         // Przypisuje zwierzę pod opiekę użytkownika
         public string AssignAnimalToCare(Animal animal)
         {
-            if (animal.Status == AdoptionStatus.Adopted) return $"Zwierzę {animal.Name} zostało już adoptowane.";
+            if (animal.Status == AdoptionStatus.Adoptowany) return $"Zwierzę {animal.Name} zostało już adoptowane.";
             if (UserAccount.NoAssignedAnimals >= MaxAnimalsLimit) return $"Osiągnięto maksymalny limit podopiecznych ({MaxAnimalsLimit}).";
             if (animal.CaretakerId != null) return $"Zwierzę {animal.Name} ma już przypisanego opiekuna (ID: {animal.CaretakerId}).";
 

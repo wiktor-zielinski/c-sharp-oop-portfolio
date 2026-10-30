@@ -32,7 +32,7 @@ namespace AnimalShelterSystem.Models
             HealthScore = Math.Clamp(health, 0, 100);
             SocializationScore = Math.Clamp(socialization, 0, 100);
             RequiresGarden = requiresGarden;
-            Status = AdoptionStatus.InQuarantine;
+            Status = AdoptionStatus.WKwarantannie;
         }
 
         // Dodaje wpis do karty medyczno-behawioralnej zwierzęcia
@@ -47,18 +47,18 @@ namespace AnimalShelterSystem.Models
         // Aktualizuje status adopcyjny na podstawie stanu zdrowia, socjalizacji i szczepień
         public bool EvaluateAdoptionReadiness()
         {
-            if (Status == AdoptionStatus.Adopted) return false;
+            if (Status == AdoptionStatus.Adoptowany) return false;
 
             if (IsVaccinated && HealthScore >= 80 && SocializationScore >= 75)
             {
-                bool changedToReady = Status != AdoptionStatus.ReadyForAdoption;
-                Status = AdoptionStatus.ReadyForAdoption;
+                bool changedToReady = Status != AdoptionStatus.GotowyDoAdopcji;
+                Status = AdoptionStatus.GotowyDoAdopcji;
                 return changedToReady;
             }
 
-            if (IsVaccinated && Status == AdoptionStatus.InQuarantine)
+            if (IsVaccinated && Status == AdoptionStatus.WKwarantannie)
             {
-                Status = AdoptionStatus.InRehabilitation;
+                Status = AdoptionStatus.WRehabilitacji;
             }
 
             return false;

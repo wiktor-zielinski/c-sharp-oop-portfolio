@@ -33,27 +33,27 @@ namespace AnimalShelterSystem.Core
             Users.Add(new Volunteer(201, "Karolina Zielińska", "wol123", "Psy lękowe i adopcje"));
 
             // Startowe zwierzęta
-            var a1 = new Animal(Database.GetNextId(), "Burek", AnimalSpecies.Dog, "Owczarek Niemiecki", 4, 65, 60, true);
+            var a1 = new Animal(Database.GetNextId(), "Burek", AnimalSpecies.Pies, "Owczarek Niemiecki", 4, 65, 60, true);
             a1.AddNote("Izba Przyjęć", "Znaleziony przy lesie, wymaga szczepienia i socjalizacji.");
 
-            var a2 = new Animal(Database.GetNextId(), "Luna", AnimalSpecies.Cat, "Europejski", 2, 90, 85, false)
+            var a2 = new Animal(Database.GetNextId(), "Luna", AnimalSpecies.Kot, "Europejski", 2, 90, 85, false)
             {
                 IsVaccinated = true,
-                Status = AdoptionStatus.ReadyForAdoption
+                Status = AdoptionStatus.GotowyDoAdopcji
             };
             a2.AddNote("lek. wet. Tomasz Mazur", "Zdrowa, zaszczepiona, gotowa do adopcji w mieszkaniu.");
 
-            var a3 = new Animal(Database.GetNextId(), "Reksio", AnimalSpecies.Dog, "Kundelek", 1, 80, 50, false)
+            var a3 = new Animal(Database.GetNextId(), "Reksio", AnimalSpecies.Pies, "Kundelek", 1, 80, 50, false)
             {
                 IsVaccinated = true,
-                Status = AdoptionStatus.InRehabilitation
+                Status = AdoptionStatus.WRehabilitacji
             };
             a3.AddNote("Karolina Zielińska", "Bardzo przyjazny, ale boi się głośnych dźwięków.");
 
-            var a4 = new Animal(Database.GetNextId(), "Puszek", AnimalSpecies.Rabbit, "Baranek", 3, 95, 90, false)
+            var a4 = new Animal(Database.GetNextId(), "Puszek", AnimalSpecies.Królik, "Baranek", 3, 95, 90, false)
             {
                 IsVaccinated = true,
-                Status = AdoptionStatus.ReadyForAdoption
+                Status = AdoptionStatus.GotowyDoAdopcji
             };
 
             Database.Add(a1);

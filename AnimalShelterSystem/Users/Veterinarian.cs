@@ -20,7 +20,7 @@ namespace AnimalShelterSystem.Users
         // Przeprowadza pakiet szczepień, leczenie oraz zwalnia zwierzę z kwarantanny
         public string PerformMedicalClearance(Animal animal, IShelterDatabase db)
         {
-            if (animal.Status == AdoptionStatus.Adopted) return "Zwierzę zostało już adoptowane.";
+            if (animal.Status == AdoptionStatus.Adoptowany) return "Zwierzę zostało już adoptowane.";
 
             animal.IsVaccinated = true;
             animal.HealthScore = Math.Min(100, animal.HealthScore + 30);

@@ -6,9 +6,9 @@ namespace AnimalShelterSystem.Models
 {
     public enum AnimalSpecies
     {
-        Dog,
-        Cat,
-        Rabbit,
-        Other
+        Pies,
+        Kot,
+        Królik,
+        Inne
     }
 }

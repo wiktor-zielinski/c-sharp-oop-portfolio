@@ -6,9 +6,9 @@ namespace AnimalShelterSystem.Models
 {
     public enum AdoptionStatus
     {
-        Adopted,
-        ReadyForAdoption,
-        InRehabilitation,
-        InQuarantine
+        Adoptowany,
+        GotowyDoAdopcji,
+        WRehabilitacji,
+        WKwarantannie
     }
 }
