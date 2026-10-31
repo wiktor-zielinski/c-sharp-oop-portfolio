@@ -251,7 +251,207 @@ namespace AnimalShelterSystem.UI
 
         private void ShowStaffMenu()
         {
-            
+            var user = _system.CurrentUser!;
+            bool isVet = user is Veterinarian;
+
+            while (true)
+            {
+                Console.Clear();
+                PrintTopBorder();
+                string panelTitle = isVet ? $"PANEL WETERYNARZA ({user.Name})" : $"PANEL WOLONTARIUSZA ({user.Name})";
+                PrintCenteredText(panelTitle);
+
+                PrintMiddleBorder();
+                PrintCenteredText($"{user.RoleName} | Podopieczni: {user.UserAccount.NoAssignedAnimals}/{user.MaxAnimalsLimit} | Przepracowane: {user.UserAccount.LoggedHours}h");
+                PrintMiddleBorder();
+                PrintEmptyLine();
+                PrintLeftText("1 - Wyświetl rejestr zwierząt w schronisku");
+                PrintLeftText("2 - Przypisz zwierzę pod swoją opiekę");
+                PrintLeftText("3 - Zakończ opiekę nad zwierzęciem");
+                PrintLeftText("4 - Przeprowadź rehabilitację / opiekę");
+                PrintLeftText("5 - Dodaj wpis do karty medyczno-behawioralnej zwierzęcia");
+                if (isVet)
+                {
+                    PrintLeftText("6 - Wykonaj szczepienie i zwolnij z kwarantanny");
+                }
+                else
+                {
+                    PrintLeftText("6 - Inteligentny dobór zwierzęcia dla adoptującego");
+                    PrintLeftText("7 - Sfinalizuj adopcję zwierzęcia");
+                }
+                PrintEmptyLine();
+                PrintMiddleBorder();
+                PrintCenteredText("ZARZĄDZANIE KONTEM");
+                PrintMiddleBorder();
+                PrintEmptyLine();
+                PrintLeftText("01 - Statystyki konta i historia aktywności");
+                PrintLeftText("02 - Wyświetl tylko moich aktualnych podopiecznych");
+                PrintEmptyLine();
+                PrintMiddleBorder();
+                PrintEmptyLine();
+                PrintLeftText("0 - Wyloguj się");
+                PrintEmptyLine();
+                PrintBottomBorder();
+
+                Console.Write("\nWybierz opcję: ");
+                string choice = Console.ReadLine()?.Trim() ?? "";
+
+                if (choice == "0")
+                {
+                    _system.Logout();
+                    break;
+                }
+
+                Console.WriteLine();
+                switch (choice)
+                {
+                    case "1":
+                        ViewAllAnimals();
+                        break;
+                    case "2":
+                        ViewAllAnimals();
+                        Console.Write("\nPodaj ID zwierzęcia, które chcesz wziąć pod opiekę: ");
+                        if (int.TryParse(Console.ReadLine(), out int assignId))
+                        {
+                            var animal = _system.Database.GetById(assignId);
+                            if (animal != null) Console.WriteLine(user.AssignAnimalToCare(animal));
+                            else Console.WriteLine("Nie znaleziono zwierzęcia.");
+                        }
+                        break;
+                    case "3":
+                        if (user.UserAccount.NoAssignedAnimals == 0)
+                        {
+                            Console.WriteLine("Nie masz aktualnie przypisanych żadnych zwierząt.");
+                            break;
+                        }
+                        foreach (var a in user.UserAccount.AssignedAnimals)
+                            Console.WriteLine($"- {a}");
+
+                        Console.Write("\nPodaj ID zwierzęcia do zwolnienia spod opieki: ");
+                        if (int.TryParse(Console.ReadLine(), out int relId))
+                        {
+                            var animal = _system.Database.GetById(relId);
+                            if (animal != null) Console.WriteLine(user.ReleaseAnimalFromCare(animal));
+                            else Console.WriteLine("Błędne ID.");
+                        }
+                        break;
+                    case "4":
+                        if (user.UserAccount.NoAssignedAnimals == 0)
+                        {
+                            Console.WriteLine("Najpierw przypisz zwierzę pod swoją opiekę (Opcja 2)!");
+                            break;
+                        }
+                        Console.WriteLine("Twoi podopieczni:");
+                        foreach (var a in user.UserAccount.AssignedAnimals)
+                            Console.WriteLine($"- {a}");
+
+                        Console.Write("\nPodaj ID podopiecznego: ");
+                        if (int.TryParse(Console.ReadLine(), out int careId))
+                        {
+                            var animal = _system.Database.GetById(careId);
+                            if (animal != null)
+                            {
+                                Console.WriteLine("\nWybierz program opieki (Strategy Pattern):");
+                                Console.WriteLine("1 - Trening Behawioralny i Socjalizacja (+20% socjalizacji, +5% zdrowia, 2h)");
+                                Console.WriteLine("2 - Spacer i Rehabilitacja Ruchowa (+15% zdrowia, +10% socjalizacji, 1h)");
+                                Console.WriteLine("3 - Rekonwalescencja i Pielęgnacja (+25% zdrowia, 3h)");
+                                Console.Write("Wybór: ");
+                                string stratChoice = Console.ReadLine()?.Trim() ?? "1";
+
+                                ICareStrategy strategy = stratChoice switch
+                                {
+                                    "2" => new PhysicalRehabilitationStrategy(),
+                                    "3" => new MedicalConvalescenceStrategy(),
+                                    _ => new BehavioralSocializationStrategy()
+                                };
+
+                                Console.WriteLine("\n" + user.PerformCareRoutine(animal, strategy, _system.Database));
+                            }
+                        }
+                        break;
+                    case "5":
+                        ViewAllAnimals();
+                        Console.Write("\nPodaj ID zwierzęcia, do którego karty chcesz dodać wpis: ");
+                        if (int.TryParse(Console.ReadLine(), out int noteId))
+                        {
+                            var animal = _system.Database.GetById(noteId);
+                            if (animal != null)
+                            {
+                                Console.Write("Treść notatki medycznej / behawioralnej: ");
+                                animal.AddNote(user.Name, Console.ReadLine() ?? "");
+                                Console.WriteLine("Dodano wpis do karty zwierzęcia!");
+                            }
+                            else Console.WriteLine("Nie znaleziono zwierzęcia.");
+                        }
+                        break;
+                    case "6" when user is Veterinarian vet:
+                        ViewAllAnimals();
+                        Console.Write("\nPodaj ID zwierzęcia do zaszczepienia i zwolnienia z kwarantanny: ");
+                        if (int.TryParse(Console.ReadLine(), out int vetAnimalId))
+                        {
+                            var animal = _system.Database.GetById(vetAnimalId);
+                            if (animal != null)
+                                Console.WriteLine(vet.PerformMedicalClearance(animal, _system.Database));
+                            else
+                                Console.WriteLine("Nie znaleziono zwierzęcia.");
+                        }
+                        break;
+                    case "6" when user is Volunteer volunteer:
+                        Console.WriteLine("--- INTELIGENTNY DOBÓR ZWIERZĘCIA DO ADOPCJI ---");
+                        Console.Write("Czy adoptujący posiada dom z ogrodem? (t/n): ");
+                        bool hasGarden = Console.ReadLine()?.Trim().ToLower() == "t";
+
+                        Console.Write("Czy adoptujący ma doświadczenie ze zwierzętami po przejściach? (t/n): ");
+                        bool isExp = Console.ReadLine()?.Trim().ToLower() == "t";
+
+                        Console.Write("Preferowany gatunek (0-Dog, 1-Cat, 2-Rabbit, Enter - dowolny): ");
+                        string spInput = Console.ReadLine()?.Trim() ?? "";
+                        AnimalSpecies? prefSpecies = int.TryParse(spInput, out int pIdx) && Enum.IsDefined(typeof(AnimalSpecies), pIdx)
+                            ? (AnimalSpecies)pIdx
+                            : null;
+
+                        var matches = volunteer.MatchAnimalsForAdopter(_system.Database, hasGarden, isExp, prefSpecies);
+                        Console.WriteLine($"\nZnaleziono dopasowanych zwierząt gotowych do adopcji: {matches.Count}");
+                        foreach (var m in matches)
+                            Console.WriteLine($"-> {m}");
+                        break;
+                    case "7" when user is Volunteer volunteerForAdopt:
+                        ViewAllAnimals();
+                        Console.Write("\nPodaj ID zwierzęcia do adopcji: ");
+                        if (int.TryParse(Console.ReadLine(), out int adoptId))
+                        {
+                            var animal = _system.Database.GetById(adoptId);
+                            if (animal != null)
+                            {
+                                Console.Write("Podaj imię i nazwisko osoby adoptującej: ");
+                                string adopter = Console.ReadLine() ?? "Anonimowy Adoptujący";
+                                Console.WriteLine("\n" + volunteerForAdopt.ProcessAdoption(animal, adopter, _system.Database));
+                            }
+                            else Console.WriteLine("Nie znaleziono zwierzęcia.");
+                        }
+                        break;
+                    case "01":
+                        Console.WriteLine($"Użytkownik: {user.Name} [{user.RoleName}]");
+                        Console.WriteLine($"Specjalizacja: {user.Specialization}");
+                        Console.WriteLine($"Przepracowane godziny: {user.UserAccount.LoggedHours}h");
+                        Console.WriteLine($"Przeprowadzone sesje rehabilitacji: {user.UserAccount.NoCareSessions}");
+                        Console.WriteLine($"Wykonane procedury weterynaryjne: {user.UserAccount.NoMedicalProcedures}");
+                        Console.WriteLine($"Sfinalizowane adopcje: {user.UserAccount.NoSuccessfulAdoptions}");
+                        break;
+                    case "02":
+                        if (user.UserAccount.NoAssignedAnimals == 0)
+                            Console.WriteLine("Brak aktualnie przypisanych podopiecznych.");
+                        else
+                        {
+                            Console.WriteLine("Twoi aktualni podopieczni:");
+                            foreach (var a in user.UserAccount.AssignedAnimals)
+                                Console.WriteLine($"- {a}");
+                        }
+                        break;
+                }
+                Console.WriteLine("\nNaciśnij dowolny klawisz, aby wrócić.");
+                Console.ReadKey(intercept: true);
+            }
         }
         private void HandleRegistration()
         {
