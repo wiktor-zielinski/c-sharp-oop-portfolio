@@ -54,9 +54,13 @@ namespace AnimalShelterSystem.Users
 
             string result = strategy.ExecuteCare(animal);
             UserAccount.RecordCareSession(strategy.DurationHours);
+
+            bool newlyReady = animal.EvaluateAdoptionReadiness();
+            db.Update(animal);
+
             db.AddLog($"[{RoleName} {Name}] {result}");
 
-            if (animal.EvaluateAdoptionReadiness())
+            if (newlyReady)
             {
                 db.TriggerMilestone($"Zwierzę #{animal.Id} ({animal.Name}) osiągnęło pełną gotowość do adopcji!");
             }

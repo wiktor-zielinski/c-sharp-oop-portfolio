@@ -23,6 +23,7 @@ namespace AnimalShelterSystem.Core
             SeedDefaultData();
         }
 
+        // Metoda wprowadzająca dane jeśli tabela SQL jest pusta
         private void SeedDefaultData()
         {
             // Domyślny koordynator
@@ -32,34 +33,49 @@ namespace AnimalShelterSystem.Core
             Users.Add(new Veterinarian(101, "lek. wet. Tomasz Mazur", "wet123", "Chirurgia i Choroby Zakaźne"));
             Users.Add(new Volunteer(201, "Karolina Zielińska", "wol123", "Psy lękowe i adopcje"));
 
-            // Startowe zwierzęta
-            var a1 = new Animal(Database.GetNextId(), "Burek", AnimalSpecies.Pies, "Owczarek Niemiecki", 4, 65, 60, true);
-            a1.AddNote("Izba Przyjęć", "Znaleziony przy lesie, wymaga szczepienia i socjalizacji.");
-
-            var a2 = new Animal(Database.GetNextId(), "Luna", AnimalSpecies.Kot, "Europejski", 2, 90, 85, false)
+            // Dodaj startowe zwierzęta tylko wtedy, gdy baza danych jest pusta
+            if (Database.ListOfAnimals.Count == 0)
             {
-                IsVaccinated = true,
-                Status = AdoptionStatus.GotowyDoAdopcji
-            };
-            a2.AddNote("lek. wet. Tomasz Mazur", "Zdrowa, zaszczepiona, gotowa do adopcji w mieszkaniu.");
+                var a1 = new Animal(Database.GetNextId(), "Burek", AnimalSpecies.Pies, "Owczarek Niemiecki", 4, 65, 60, true);
+                a1.AddNote("Izba Przyjęć", "Znaleziony przy lesie, wymaga szczepienia i socjalizacji.");
 
-            var a3 = new Animal(Database.GetNextId(), "Reksio", AnimalSpecies.Pies, "Kundelek", 1, 80, 50, false)
+                var a2 = new Animal(Database.GetNextId(), "Luna", AnimalSpecies.Kot, "Europejski", 2, 90, 85, false)
+                {
+                    IsVaccinated = true,
+                    Status = AdoptionStatus.GotowyDoAdopcji
+                };
+                a2.AddNote("lek. wet. Tomasz Mazur", "Zdrowa, zaszczepiona, gotowa do adopcji w mieszkaniu.");
+
+                var a3 = new Animal(Database.GetNextId(), "Reksio", AnimalSpecies.Pies, "Kundelek", 1, 80, 50, false)
+                {
+                    IsVaccinated = true,
+                    Status = AdoptionStatus.WRehabilitacji
+                };
+                a3.AddNote("Karolina Zielińska", "Bardzo przyjazny, ale boi się głośnych dźwięków.");
+
+                var a4 = new Animal(Database.GetNextId(), "Puszek", AnimalSpecies.Królik, "Baranek", 3, 95, 90, false)
+                {
+                    IsVaccinated = true,
+                    Status = AdoptionStatus.GotowyDoAdopcji
+                };
+
+                Database.Add(a1);
+                Database.Add(a2);
+                Database.Add(a3);
+                Database.Add(a4);
+            }
+            else
             {
-                IsVaccinated = true,
-                Status = AdoptionStatus.WRehabilitacji
-            };
-            a3.AddNote("Karolina Zielińska", "Bardzo przyjazny, ale boi się głośnych dźwięków.");
-
-            var a4 = new Animal(Database.GetNextId(), "Puszek", AnimalSpecies.Królik, "Baranek", 3, 95, 90, false)
-            {
-                IsVaccinated = true,
-                Status = AdoptionStatus.GotowyDoAdopcji
-            };
-
-            Database.Add(a1);
-            Database.Add(a2);
-            Database.Add(a3);
-            Database.Add(a4);
+                // Odtworzenie przypisań zwierząt do pracowników po wczytaniu z bazy SQL
+                foreach (var animal in Database.ListOfAnimals)
+                {
+                    if (animal.CaretakerId.HasValue)
+                    {
+                        var caretaker = Users.FirstOrDefault(u => u.ID == animal.CaretakerId.Value);
+                        caretaker?.UserAccount.AssignAnimal(animal);
+                    }
+                }
+            }
         }
 
         public bool LoginCoordinator(int id, string password)
@@ -110,6 +126,7 @@ namespace AnimalShelterSystem.Core
             {
                 animal.CaretakerId = null;
                 user.UserAccount.UnassignAnimal(animal);
+                Database.Update(animal);
             }
             return Users.Remove(user);
         }

@@ -28,6 +28,7 @@ namespace AnimalShelterSystem.Users
             UserAccount.RecordMedicalProcedure(2);
 
             bool newlyReady = animal.EvaluateAdoptionReadiness();
+            db.Update(animal);
             db.AddLog($"[WETERYNARZ {Name}] Zaszczepił i zbadał #{animal.Id} {animal.Name} (Zdrowie: {animal.HealthScore}%).");
 
             if (newlyReady)

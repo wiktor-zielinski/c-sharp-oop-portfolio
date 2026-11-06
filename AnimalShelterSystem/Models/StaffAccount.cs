@@ -19,7 +19,7 @@ namespace AnimalShelterSystem.Models
         // Przypisuje zwierzę pod opiekę pracownika lub wolontariusza
         public void AssignAnimal(Animal animal)
         {
-            if (!_assignedAnimals.Contains(animal))
+            if (!_assignedAnimals.Any(a => a.Id == animal.Id))
             {
                 _assignedAnimals.Add(animal);
             }
@@ -28,7 +28,7 @@ namespace AnimalShelterSystem.Models
         // Zwalnia zwierzę spod bezpośredniej opieki
         public void UnassignAnimal(Animal animal)
         {
-            _assignedAnimals.Remove(animal);
+            _assignedAnimals.RemoveAll(a => a.Id == animal.Id);
         }
 
         // Rejestruje sesję rehabilitacyjną lub opiekuńczą
@@ -48,7 +48,7 @@ namespace AnimalShelterSystem.Models
         // Rejestruje pomyślnie przeprowadzoną adopcję
         public void RecordAdoption(Animal animal)
         {
-            _assignedAnimals.Remove(animal);
+            _assignedAnimals.RemoveAll(a => a.Id == animal.Id);
             NoSuccessfulAdoptions++;
             LoggedHours += 2;
         }

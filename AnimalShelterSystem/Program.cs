@@ -20,7 +20,10 @@ namespace AnimalShelterSystem
 
             Console.Title = "Animal Shelter & Adoption Management System";
 
-            IShelterDatabase database = new ShelterDatabase();
+            // Connection string do lokalnej bazy SQL Server
+            string connectionString = "Server=WIKTOR;Database=AnimalShelterDB;Trusted_Connection=True;TrustServerCertificate=True;";
+
+            IShelterDatabase database = new SqlShelterDatabase(connectionString);
             ShelterManagementSystem system = new ShelterManagementSystem(database);
             ConsoleUI ui = new ConsoleUI(system);
 

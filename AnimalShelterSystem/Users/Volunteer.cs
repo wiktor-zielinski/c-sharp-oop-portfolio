@@ -36,6 +36,7 @@ namespace AnimalShelterSystem.Users
             animal.CaretakerId = null;
             animal.AddNote(Name, $"Adoptowany przez: {adopterName}");
             UserAccount.RecordAdoption(animal);
+            db.Update(animal);
 
             db.TriggerMilestone($"ADOPCJA! {animal.Name} (#{animal.Id}) znalazł nowy dom u: {adopterName} (obsługa: {Name})!");
             return $"Gratulacje! Sfinalizowano adopcję zwierzęcia {animal.Name} dla: {adopterName}.";

@@ -314,7 +314,11 @@ namespace AnimalShelterSystem.UI
                         if (int.TryParse(Console.ReadLine(), out int assignId))
                         {
                             var animal = _system.Database.GetById(assignId);
-                            if (animal != null) Console.WriteLine(user.AssignAnimalToCare(animal));
+                            if (animal != null)
+                            {
+                                Console.WriteLine(user.AssignAnimalToCare(animal));
+                                _system.Database.Update(animal);
+                            }
                             else Console.WriteLine("Nie znaleziono zwierzęcia.");
                         }
                         break;
@@ -324,14 +328,17 @@ namespace AnimalShelterSystem.UI
                             Console.WriteLine("Nie masz aktualnie przypisanych żadnych zwierząt.");
                             break;
                         }
-                        foreach (var a in user.UserAccount.AssignedAnimals)
-                            Console.WriteLine($"- {a}");
+                        foreach (var a in user.UserAccount.AssignedAnimals) Console.WriteLine($"- {a}");
 
                         Console.Write("\nPodaj ID zwierzęcia do zwolnienia spod opieki: ");
                         if (int.TryParse(Console.ReadLine(), out int relId))
                         {
                             var animal = _system.Database.GetById(relId);
-                            if (animal != null) Console.WriteLine(user.ReleaseAnimalFromCare(animal));
+                            if (animal != null)
+                            {
+                                Console.WriteLine(user.ReleaseAnimalFromCare(animal));
+                                _system.Database.Update(animal);
+                            }
                             else Console.WriteLine("Błędne ID.");
                         }
                         break;
@@ -379,6 +386,7 @@ namespace AnimalShelterSystem.UI
                             {
                                 Console.Write("Treść notatki medycznej / behawioralnej: ");
                                 animal.AddNote(user.Name, Console.ReadLine() ?? "");
+                                _system.Database.Update(animal);
                                 Console.WriteLine("Dodano wpis do karty zwierzęcia!");
                             }
                             else Console.WriteLine("Nie znaleziono zwierzęcia.");
