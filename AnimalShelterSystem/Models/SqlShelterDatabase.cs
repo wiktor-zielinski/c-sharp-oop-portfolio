@@ -2,24 +2,25 @@
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace AnimalShelterSystem.Models
 {
+    // Implementacja bazy danych schroniska oparta o SQL Server (ADO.NET)
     public class SqlShelterDatabase : IShelterDatabase
     {
         private readonly string _connectionString;
         private int _nextAnimalId;
-        public IReadOnlyList<Animal> ListOfAnimals => FetchAllAnimals().AsReadOnly();
 
         public event Action<string>? OnShelterMilestone;
+
         public SqlShelterDatabase(string connectionString)
         {
             _connectionString = connectionString;
             InitializeNextId();
         }
 
-        // Inicjalizuje licznik ID na podstawie najwyższego ID w tabeli Animals
+        public IReadOnlyList<Animal> ListOfAnimals => FetchAllAnimals().AsReadOnly();
+
         private void InitializeNextId()
         {
             using var conn = new SqlConnection(_connectionString);
@@ -32,7 +33,6 @@ namespace AnimalShelterSystem.Models
 
         public int GetNextId() => _nextAnimalId++;
 
-        // Dodaje nowe zwierzę oraz jego początkowe notatki w ramach jednej transakcji SQL
         public void Add(Animal animal)
         {
             if (animal.Id >= _nextAnimalId)
@@ -65,7 +65,7 @@ namespace AnimalShelterSystem.Models
                     cmd.ExecuteNonQuery();
                 }
 
-                InsertAnimalNotes(animal, conn, transaction);
+                InsertNewAnimalNotes(animal, 0, conn, transaction);
 
                 transaction.Commit();
                 AddLog($"Przyjęto do schroniska: {animal.Name} ({animal.Species}, {animal.Breed})");
@@ -77,7 +77,6 @@ namespace AnimalShelterSystem.Models
             }
         }
 
-        // Usuwa zwierzę z bazy (notatki usuwają się automatycznie dzięki ON DELETE CASCADE)
         public bool Remove(int id)
         {
             using var conn = new SqlConnection(_connectionString);
@@ -128,18 +127,19 @@ namespace AnimalShelterSystem.Models
                     cmd.Parameters.AddWithValue("@CaretakerId", (object?)updatedAnimal.CaretakerId ?? DBNull.Value);
 
                     int rows = cmd.ExecuteNonQuery();
-                    if (rows == 0) throw new KeyNotFoundException("Nie znaleziono zwierzęcia o podanym ID.");
+                    if (rows == 0)
+                        throw new KeyNotFoundException("Nie znaleziono zwierzęcia o podanym ID.");
                 }
 
-                // Odświeżenie notatek zwierzęcia (usunięcie starych i wstawienie aktualnej listy)
-                const string deleteNotesSql = "DELETE FROM dbo.AnimalNotes WHERE AnimalId = @AnimalId;";
-                using (var delCmd = new SqlCommand(deleteNotesSql, conn, transaction))
+                const string countNotesSql = "SELECT COUNT(*) FROM dbo.AnimalNotes WHERE AnimalId = @AnimalId;";
+                int existingNotesCount;
+                using (var countCmd = new SqlCommand(countNotesSql, conn, transaction))
                 {
-                    delCmd.Parameters.AddWithValue("@AnimalId", updatedAnimal.Id);
-                    delCmd.ExecuteNonQuery();
+                    countCmd.Parameters.AddWithValue("@AnimalId", updatedAnimal.Id);
+                    existingNotesCount = Convert.ToInt32(countCmd.ExecuteScalar());
                 }
 
-                InsertAnimalNotes(updatedAnimal, conn, transaction);
+                InsertNewAnimalNotes(updatedAnimal, existingNotesCount, conn, transaction);
 
                 transaction.Commit();
             }
@@ -150,7 +150,6 @@ namespace AnimalShelterSystem.Models
             }
         }
 
-        // Pobiera pojedyncze zwierzę po ID wraz z historią notatek
         public Animal? GetById(int id)
         {
             using var conn = new SqlConnection(_connectionString);
@@ -185,21 +184,19 @@ namespace AnimalShelterSystem.Models
             OnShelterMilestone?.Invoke(message);
         }
 
-        // Zapisuje wpis w tabeli dziennika systemowego
+        // Zapisuje czysty komunikat w tabeli SystemLogs
         public void AddLog(string message)
         {
-            string entry = $"[{DateTime.Now:HH:mm:ss}] {message}";
-
             using var conn = new SqlConnection(_connectionString);
             conn.Open();
 
             const string sql = "INSERT INTO dbo.SystemLogs (LogMessage) VALUES (@LogMessage);";
             using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@LogMessage", entry);
+            cmd.Parameters.AddWithValue("@LogMessage", message);
             cmd.ExecuteNonQuery();
         }
 
-        // Pobiera ostatnie N wpisów z dziennika zdarzeń w kolejności chronologicznej
+        // Pobiera ostatnie logi i łączy kolumnę CreatedAt z LogMessage na potrzeby wyświetlania w konsoli
         public List<string> GetRecentLogs(int count = 15)
         {
             var logs = new List<string>();
@@ -208,7 +205,7 @@ namespace AnimalShelterSystem.Models
             conn.Open();
 
             const string sql = @"
-                SELECT TOP (@Count) LogMessage 
+                SELECT TOP (@Count) CreatedAt, LogMessage 
                 FROM dbo.SystemLogs 
                 ORDER BY LogId DESC;";
 
@@ -218,14 +215,15 @@ namespace AnimalShelterSystem.Models
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                logs.Add(reader.GetString(0));
+                string createdAt = reader.GetString(0);
+                string message = reader.GetString(1);
+                logs.Add($"[{createdAt}] {message}");
             }
 
             logs.Reverse();
             return logs;
         }
 
-        // Metoda pomocnicza: pobiera wszystkie zwierzęta i przypisuje im notatki
         private List<Animal> FetchAllAnimals()
         {
             var animals = new List<Animal>();
@@ -253,7 +251,7 @@ namespace AnimalShelterSystem.Models
             if (animals.Count > 0)
             {
                 const string notesSql = @"
-                    SELECT AnimalId, NoteText 
+                    SELECT AnimalId, CreatedAt, NoteText 
                     FROM dbo.AnimalNotes 
                     ORDER BY NoteId ASC;";
 
@@ -262,11 +260,12 @@ namespace AnimalShelterSystem.Models
                 while (notesReader.Read())
                 {
                     int animalId = notesReader.GetInt32(0);
-                    string noteText = notesReader.GetString(1);
+                    string createdAt = notesReader.GetString(1);
+                    string noteText = notesReader.GetString(2);
 
                     if (animalDict.TryGetValue(animalId, out var animal))
                     {
-                        animal.MedicalAndBehaviorLogs.Add(noteText);
+                        animal.MedicalAndBehaviorLogs.Add($"[{createdAt}] {noteText}");
                     }
                 }
             }
@@ -274,17 +273,26 @@ namespace AnimalShelterSystem.Models
             return animals;
         }
 
-        private static void InsertAnimalNotes(Animal animal, SqlConnection conn, SqlTransaction transaction)
+        // Wstawia tylko nowo dodane notatki (od indeksu startFromIndex wzwyż)
+        private static void InsertNewAnimalNotes(Animal animal, int startFromIndex, SqlConnection conn, SqlTransaction transaction)
         {
             const string insertNoteSql = @"
                 INSERT INTO dbo.AnimalNotes (AnimalId, NoteText) 
                 VALUES (@AnimalId, @NoteText);";
 
-            foreach (var note in animal.MedicalAndBehaviorLogs)
+            for (int i = startFromIndex; i < animal.MedicalAndBehaviorLogs.Count; i++)
             {
+                string rawNote = animal.MedicalAndBehaviorLogs[i];
+
+                // Jeśli notatka została wcześniej wczytana z bazy z prefiksem "[RRRR-MM-DD GG:MM] ", odcinamy go
+                if (rawNote.StartsWith("[") && rawNote.Length > 19 && rawNote[17] == ']')
+                {
+                    rawNote = rawNote.Substring(19);
+                }
+
                 using var noteCmd = new SqlCommand(insertNoteSql, conn, transaction);
                 noteCmd.Parameters.AddWithValue("@AnimalId", animal.Id);
-                noteCmd.Parameters.AddWithValue("@NoteText", note);
+                noteCmd.Parameters.AddWithValue("@NoteText", rawNote);
                 noteCmd.ExecuteNonQuery();
             }
         }
@@ -292,7 +300,7 @@ namespace AnimalShelterSystem.Models
         private static void LoadNotesForAnimal(Animal animal, SqlConnection conn)
         {
             const string notesSql = @"
-                SELECT NoteText 
+                SELECT CreatedAt, NoteText 
                 FROM dbo.AnimalNotes 
                 WHERE AnimalId = @AnimalId 
                 ORDER BY NoteId ASC;";
@@ -303,7 +311,9 @@ namespace AnimalShelterSystem.Models
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                animal.MedicalAndBehaviorLogs.Add(reader.GetString(0));
+                string createdAt = reader.GetString(0);
+                string noteText = reader.GetString(1);
+                animal.MedicalAndBehaviorLogs.Add($"[{createdAt}] {noteText}");
             }
         }
 

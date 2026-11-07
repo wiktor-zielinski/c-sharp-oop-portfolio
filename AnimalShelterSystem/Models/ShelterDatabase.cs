@@ -55,8 +55,7 @@ namespace AnimalShelterSystem.Models
 
         public void AddLog(string message)
         {
-            string entry = $"[{DateTime.Now:HH:mm:ss}] {message}";
-            _systemLogs.Add(entry);
+            _systemLogs.Add($"[{DateTime.Now:yyyy-MM-dd HH:mm}] {message}");
             if (_systemLogs.Count > 40)
                 _systemLogs.RemoveAt(0);
         }

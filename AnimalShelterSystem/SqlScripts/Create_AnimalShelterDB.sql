@@ -34,7 +34,8 @@ BEGIN
         NoteId INT IDENTITY(1,1) PRIMARY KEY,
         AnimalId INT NOT NULL,
         NoteText NVARCHAR(500) NOT NULL,
-        CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        -- ZMIANA: Zapisujemy czas w formacie tekstowym RRRR-MM-DD GG:MM (bez sekund)
+        CreatedAt VARCHAR(16) NOT NULL DEFAULT FORMAT(SYSDATETIME(), 'yyyy-MM-dd HH:mm'),
         CONSTRAINT FK_AnimalNotes_Animals FOREIGN KEY (AnimalId)
             REFERENCES dbo.Animals(Id)
             ON DELETE CASCADE -- Usunięcie zwierzęcia automatycznie usuwa jego notatki
@@ -48,7 +49,8 @@ BEGIN
     CREATE TABLE dbo.SystemLogs (
         LogId INT IDENTITY(1,1) PRIMARY KEY,
         LogMessage NVARCHAR(500) NOT NULL,
-        CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+        -- ZMIANA: Zapisujemy czas w formacie tekstowym RRRR-MM-DD GG:MM (bez sekund)
+        CreatedAt VARCHAR(16) NOT NULL DEFAULT FORMAT(SYSDATETIME(), 'yyyy-MM-dd HH:mm')
     );
 END
 GO

@@ -40,7 +40,7 @@ namespace AnimalShelterSystem.Models
         {
             if (!string.IsNullOrWhiteSpace(note))
             {
-                MedicalAndBehaviorLogs.Add($"[{DateTime.Now:yyyy-MM-dd}] {author}: \"{note.Trim()}\"");
+                MedicalAndBehaviorLogs.Add($"{author}: \"{note.Trim()}\"");
             }
         }
 
