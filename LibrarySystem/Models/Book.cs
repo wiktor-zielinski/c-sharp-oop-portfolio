@@ -6,8 +6,8 @@ namespace LibrarySystem.Models
 {
     public class Book
     {
-        public string Title { get; init; }
-        public string Author { get; init; }
+        public string Title { get; set; }
+        public string Author { get; set; }
         public string Isbn { get; init; }
         public DateTime PublicationDate { get; init; }
 
@@ -33,6 +33,17 @@ namespace LibrarySystem.Models
             Status = BookStatus.Available;
         }
 
+        // Konstruktor używany przez bazę danych SQL do odtworzenia pełnego stanu książki
+        public Book(string title, string author, string isbn, DateTime publicationDate,
+                    BookStatus status, DateTime? dueDate, int? borrowedByUserId, int? reservedByUserId)
+            : this(title, author, isbn, publicationDate)
+        {
+            Status = status;
+            DueDate = dueDate;
+            BorrowedByUserId = borrowedByUserId;
+            ReservedByUserId = reservedByUserId;
+        }
+
         // Zwraca informację o terminie zwrotu albo o braku aktywnego wypożyczenia
         public string ShowDueDate()
         {
@@ -52,12 +63,18 @@ namespace LibrarySystem.Models
             };
         }
 
-        // Zapisuje opinię wraz z datą jej dodania
+        // Zapisuje opinię czytelnika (data dodania jest generowana w kolumnie CreatedAt w bazie)
         public void AddFeedback(string userName, string comment)
         {
             if (string.IsNullOrWhiteSpace(comment)) throw new ArgumentException("Opinia nie może być pusta");
 
-            _feedbacks.Add($"[{DateTime.Now:yyyy-MM-dd}] {userName}: {comment}");
+            _feedbacks.Add($"{userName}: \"{comment.Trim()}\"");
+        }
+
+        // Metoda pomocnicza do wczytywania sformatowanych opinii z bazy danych
+        public void LoadFeedbackFromDb(string formattedFeedback)
+        {
+            _feedbacks.Add(formattedFeedback);
         }
 
         // Wypożycza książkę, jeśli jej status i rezerwacja na to pozwalają
@@ -108,6 +125,7 @@ namespace LibrarySystem.Models
         public void MarkAsLost()
         {
             Status = BookStatus.Lost;
+            BorrowedByUserId = null;
             DueDate = null;
         }
 
