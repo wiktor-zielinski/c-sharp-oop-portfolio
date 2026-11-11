@@ -67,10 +67,11 @@ namespace LibrarySystem.Users
         {
             if (book == null) throw new ArgumentNullException(nameof(book));
 
-            if (!UserAccount.BorrowedBooks.Contains(book)) return "Nie masz wypożyczonej tej książki";
+            if (!UserAccount.BorrowedBooks.Any(b => b.Isbn.Equals(book.Isbn, StringComparison.OrdinalIgnoreCase))) return "Nie masz wypożyczonej tej książki.";
 
-            UserAccount.RegisterReservedBook(book);
-            return $"Zarezerwowano książke '{book.Title}'.";
+            UserAccount.RegisterReturnedBook(book);
+            book.Return();
+            return $"Zwrócono książkę '{book.Title}'.";
         }
 
         // Rejestruje rezerwację książki w systemie i na koncie użytkownika
@@ -89,10 +90,10 @@ namespace LibrarySystem.Users
         {
             if (book == null) throw new ArgumentNullException(nameof(book));
 
-            if (!UserAccount.BorrowedBooks.Contains(book)) return "Nie masz wypożyczonej tej książki";
+            if (!UserAccount.BorrowedBooks.Any(b => b.Isbn.Equals(book.Isbn, StringComparison.OrdinalIgnoreCase))) return "Nie masz wypożyczonej tej książki.";
 
             UserAccount.RegisterLostBook(book);
-            return $"Zgłoszono zagubienie książki '{book.Title}'. Na konto naliczono opłatę karną ({100:C2})";
+            return $"Zgłoszono zagubienie książki '{book.Title}'. Na konto naliczono opłatę karną ({100:C2}).";
         }
     }
 }

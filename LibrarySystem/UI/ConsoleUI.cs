@@ -209,15 +209,15 @@ namespace LibrarySystem.UI
                             Console.WriteLine($"Edytujesz: {existingBook.Title} ({existingBook.Author})");
                             Console.Write("Nowy tytuł (zostaw puste by nie zmieniać): ");
                             string newTitle = Console.ReadLine() ?? "";
-                            if (string.IsNullOrWhiteSpace(newTitle)) newTitle = existingBook.Title;
+                            if (!string.IsNullOrWhiteSpace(newTitle)) existingBook.Title = newTitle;
 
                             Console.Write("Nowy autor (zostaw puste by nie zmieniać): ");
                             string newAuthor = Console.ReadLine() ?? "";
-                            if (string.IsNullOrWhiteSpace(newAuthor)) newAuthor = existingBook.Author;
+                            if (!string.IsNullOrWhiteSpace(newAuthor)) existingBook.Author = newAuthor;
 
                             try
                             {
-                                _system.Database.Update(new Book(newTitle, newAuthor, existingBook.Isbn, existingBook.PublicationDate));
+                                _system.Database.Update(existingBook);
                                 Console.WriteLine("\nZaktualizowano dane książki!");
                             }
                             catch (Exception ex) { Console.WriteLine($"\nBłąd podczas aktualizacji: {ex.Message}"); }
@@ -362,7 +362,10 @@ namespace LibrarySystem.UI
                         Console.Write("Podaj ISBN książki do wypożyczenia: ");
                         var bookToBorrow = _system.Database.GetByIsbn(Console.ReadLine()?.Trim() ?? "");
                         if (bookToBorrow != null)
+                        {
                             Console.WriteLine(user.BorrowBook(bookToBorrow));
+                            _system.Database.Update(bookToBorrow);
+                        }
                         else
                             Console.WriteLine("Książka o tym ISBN nie istnieje w bazie.");
                         break;
@@ -373,7 +376,10 @@ namespace LibrarySystem.UI
                             Console.Write("\nPodaj ISBN zwracanej książki: ");
                             var bookToReturn = _system.Database.GetByIsbn(Console.ReadLine()?.Trim() ?? "");
                             if (bookToReturn != null)
+                            {
                                 Console.WriteLine(user.ReturnBook(bookToReturn));
+                                _system.Database.Update(bookToReturn);
+                            }
                             else
                                 Console.WriteLine("Błędny ISBN.");
                         }
@@ -383,7 +389,10 @@ namespace LibrarySystem.UI
                         Console.Write("Podaj ISBN książki do rezerwacji: ");
                         var bookToReserve = _system.Database.GetByIsbn(Console.ReadLine()?.Trim() ?? "");
                         if (bookToReserve != null)
+                        {
                             Console.WriteLine(user.ReserveBook(bookToReserve));
+                            _system.Database.Update(bookToReserve);
+                        }
                         else
                             Console.WriteLine("Nie znaleziono książki.");
                         break;
@@ -395,6 +404,7 @@ namespace LibrarySystem.UI
                         {
                             Console.Write("Twoja opinia: ");
                             bookToRate.AddFeedback(user.Name, Console.ReadLine() ?? "");
+                            _system.Database.Update(bookToRate);
                             Console.WriteLine("Dodano opinię!");
                         }
                         else Console.WriteLine("Nie znaleziono książki.");
@@ -408,6 +418,7 @@ namespace LibrarySystem.UI
                         var requestedBook = new Book(t, a, i, DateTime.Now);
                         _system.Database.Add(requestedBook);
                         user.ReserveBook(requestedBook);
+                        _system.Database.Update(requestedBook);
                         Console.WriteLine($"\nDodano książkę '{t}' do bazy i automatycznie zarezerwowano dla Ciebie!");
                         break;
                     case "01":
@@ -425,7 +436,10 @@ namespace LibrarySystem.UI
                             var bookToRenew = user.UserAccount.BorrowedBooks.FirstOrDefault(b => b.Isbn.Equals(isbn, StringComparison.OrdinalIgnoreCase));
 
                             if (bookToRenew != null && bookToRenew.RenewInfo(7))
+                            {
+                                _system.Database.Update(bookToRenew);
                                 Console.WriteLine($"Przedłużono termin! {bookToRenew.ShowDueDate()}");
+                            }
                             else
                                 Console.WriteLine("Nie można przedłużyć książki (nie istnieje lub jest zarezerwowana).");
                         }
@@ -435,7 +449,10 @@ namespace LibrarySystem.UI
                         Console.Write("Podaj ISBN zagubionej książki: ");
                         var lostBook = _system.Database.GetByIsbn(Console.ReadLine()?.Trim() ?? "");
                         if (lostBook != null)
+                        {
                             Console.WriteLine(user.ReportLostBook(lostBook));
+                            _system.Database.Update(lostBook);
+                        }
                         else
                             Console.WriteLine("Błędny ISBN.");
                         break;

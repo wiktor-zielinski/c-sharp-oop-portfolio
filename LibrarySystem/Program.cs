@@ -30,7 +30,10 @@ namespace LibrarySystem
             CultureInfo.DefaultThreadCurrentCulture = polishCulture;
             CultureInfo.DefaultThreadCurrentUICulture = polishCulture;
 
-            ILibraryDatabase database = new LibraryDatabase();
+            // Connection string do lokalnej bazy danych LibraryDB
+            string connectionString = "Server=WIKTOR;Database=LibraryDB;Trusted_Connection=True;TrustServerCertificate=True;";
+
+            ILibraryDatabase database = new SqlLibraryDatabase(connectionString);
             LibraryManagementSystem system = new LibraryManagementSystem(database);
 
             // Załadowanie próbnych danych startowych

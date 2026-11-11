@@ -23,10 +23,11 @@ namespace LibrarySystem.Core
             var user = _users.FirstOrDefault(u => u.ID == id);
             if (user == null) return false;
 
-            // Zwracanie wszystkich książek danego użytkownika przed usunięciem
-            foreach(var book in user.UserAccount.BorrowedBooks.ToList())
+            // Zwracanie wszystkich książek danego użytkownika przed usunięciem i zapis w bazie
+            foreach (var book in user.UserAccount.BorrowedBooks.ToList())
             {
                 book.Return();
+                Database.Update(book);
             }
             return _users.Remove(user);
         }
@@ -116,11 +117,31 @@ namespace LibrarySystem.Core
             RegisterStudent("Jan Kowalski", 101, "pass", "Informatyka Stosowana");
             RegisterStaff("Dr Piotr Wiśniewski", 201, "pass", "Katedra Inżynierii Oprogramowania");
 
-            // Przykładowy księgozbiór
-            Database.Add(new Book("Czysty Kod (Clean Code)", "Robert C. Martin", "978-83-283-0234-1", new DateTime(2008, 8, 1)));
-            Database.Add(new Book("Wzorce Projektowe", "Erich Gamma i in.", "978-83-246-2662-5", new DateTime(1994, 10, 21)));
-            Database.Add(new Book("C# 12 w pigułce", "Joseph Albahari", "978-83-289-1021-8", new DateTime(2024, 2, 15)));
-            Database.Add(new Book("Algorytmy. Ilustrowany przewodnik", "Aditya Bhargava", "978-83-283-2413-8", new DateTime(2016, 5, 1)));
+            // Przykładowy księgozbiór dodawany tylko wtedy, gdy baza danych SQL jest pusta
+            if (Database.ListOfBooks.Count == 0)
+            {
+                Database.Add(new Book("Czysty Kod (Clean Code)", "Robert C. Martin", "978-83-283-0234-1", new DateTime(2008, 8, 1)));
+                Database.Add(new Book("Wzorce Projektowe", "Erich Gamma i in.", "978-83-246-2662-5", new DateTime(1994, 10, 21)));
+                Database.Add(new Book("C# 12 w pigułce", "Joseph Albahari", "978-83-289-1021-8", new DateTime(2024, 2, 15)));
+                Database.Add(new Book("Algorytmy. Ilustrowany przewodnik", "Aditya Bhargava", "978-83-283-2413-8", new DateTime(2016, 5, 1)));
+            }
+            else
+            {
+                // Odtworzenie wypożyczeń i rezerwacji na kontach czytelników po wczytaniu z bazy SQL
+                foreach (var book in Database.ListOfBooks)
+                {
+                    if (book.BorrowedByUserId.HasValue)
+                    {
+                        var borrower = _users.FirstOrDefault(u => u.ID == book.BorrowedByUserId.Value);
+                        borrower?.UserAccount.RegisterBorrowedBook(book);
+                    }
+                    if (book.ReservedByUserId.HasValue)
+                    {
+                        var reserver = _users.FirstOrDefault(u => u.ID == book.ReservedByUserId.Value);
+                        reserver?.UserAccount.RegisterReservedBook(book);
+                    }
+                }
+            }
         }
     }
 }

@@ -25,17 +25,18 @@ namespace LibrarySystem.Models
         public void RegisterBorrowedBook(Book book)
         {
             if (book == null) throw new ArgumentNullException(nameof(book));
-            _borrowedBooks.Add(book);
-            _reservedBooks.Remove(book);
+            if (!_borrowedBooks.Any(b => b.Isbn.Equals(book.Isbn, StringComparison.OrdinalIgnoreCase))) _borrowedBooks.Add(book);
+            _reservedBooks.RemoveAll(b => b.Isbn.Equals(book.Isbn, StringComparison.OrdinalIgnoreCase));
         }
 
         // Zapisuje zwrot książki i dolicza karę za przekroczenie terminu
         public void RegisterReturnedBook(Book book)
         {
-            if (_borrowedBooks.Remove(book))
+            int removed = _borrowedBooks.RemoveAll(b => b.Isbn.Equals(book.Isbn, StringComparison.OrdinalIgnoreCase));
+            if (removed > 0)
             {
                 NoReturnedBooks++;
-                if(book.DueDate.HasValue && DateTime.Now.Date > book.DueDate.Value.Date)
+                if (book.DueDate.HasValue && DateTime.Now.Date > book.DueDate.Value.Date)
                 {
                     int overdueDays = (DateTime.Now.Date - book.DueDate.Value.Date).Days;
                     FineAmount += overdueDays * DailyOverdueFine;
@@ -47,13 +48,14 @@ namespace LibrarySystem.Models
         public void RegisterReservedBook(Book book)
         {
             if (book == null) throw new ArgumentNullException(nameof(book));
-            if (!_reservedBooks.Contains(book)) _reservedBooks.Add(book);
+            if (!_reservedBooks.Any(b => b.Isbn.Equals(book.Isbn, StringComparison.OrdinalIgnoreCase))) _reservedBooks.Add(book);
         }
 
         // Usuwa zgubioną książkę z wypożyczonych i nalicza ustaloną karę
         public void RegisterLostBook(Book book)
         {
-            if (_borrowedBooks.Remove(book))
+            int removed = _borrowedBooks.RemoveAll(b => b.Isbn.Equals(book.Isbn, StringComparison.OrdinalIgnoreCase));
+            if (removed > 0)
             {
                 NoLostBooks++;
                 FineAmount += LostBookPenalty;
