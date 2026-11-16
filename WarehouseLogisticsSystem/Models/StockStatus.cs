@@ -9,6 +9,6 @@ namespace WarehouseLogisticsSystem.Models
         Optymalny,
         NiskiStan,
         Wyczerpany,
-        ZablokowanyKJ // Wstrzymane przez kontrolę jakości
+        ZablokowanyQA // Wstrzymane przez kontrolę jakości
     }
 }

@@ -20,8 +20,7 @@ namespace WarehouseLogisticsSystem.Models
         // Oblicza łączną wartość netto zapasu danego towaru
         public decimal TotalNetValue => Quantity * UnitNetPrice;
 
-        public Product(string sku, string name, ProductCategory category, string rackLocation,
-                       int quantity, int minStockThreshold, decimal unitNetPrice)
+        public Product(string sku, string name, ProductCategory category, string rackLocation, int quantity, int minStockThreshold, decimal unitNetPrice)
         {
             if (string.IsNullOrWhiteSpace(sku)) throw new ArgumentException("Kod SKU nie może być pusty.");
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Nazwa produktu nie może być pusta.");
@@ -40,8 +39,7 @@ namespace WarehouseLogisticsSystem.Models
         }
 
         // Konstruktor używany przez warstwę ADO.NET podczas odczytu z bazy SQL
-        public Product(string sku, string name, ProductCategory category, string rackLocation,
-                       int quantity, int minStockThreshold, decimal unitNetPrice, StockStatus status)
+        public Product(string sku, string name, ProductCategory category, string rackLocation, int quantity, int minStockThreshold, decimal unitNetPrice, StockStatus status)
             : this(sku, name, category, rackLocation, quantity, minStockThreshold, unitNetPrice)
         {
             Status = status;

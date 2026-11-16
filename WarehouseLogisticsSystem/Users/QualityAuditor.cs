@@ -10,8 +10,7 @@ namespace WarehouseLogisticsSystem.Users
     {
         public override string RoleName => "Inspektor Kontroli Jakości (QA)";
 
-        public QualityAuditor(int id, string name, string plainPassword, string assignedSector)
-            : base(id, name, plainPassword, assignedSector)
+        public QualityAuditor(int id, string name, string plainPassword, string assignedSector): base(id, name, plainPassword, assignedSector)
         {
         }
 
